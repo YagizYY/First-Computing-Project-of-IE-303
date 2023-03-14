@@ -1,0 +1,92 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!optional parameters section
+parameters
+!  SAMPLEPARAM1='c:\test\'
+!  SAMPLEPARAM2=false
+   PROJECTDIR='' ! for when file is added to project
+end-parameters
+
+!sample declarations section
+declarations
+Ie = 1..7
+Iee = 2..7
+Je = 1..25
+
+D: array(Ie) of real
+CS: array(Je) of real
+cap: array(Je) of real
+M: array(Je) of real
+CF: array(Je) of real
+CH: array(Je) of real
+A: array(Je) of real
+T: array(Ie) of real
+!dv's
+X:array(Ie,Je) of mpvar
+Y:array(Ie,Je) of mpvar
+Z:array(Ie,Je) of mpvar
+
+! ...
+  Objective:linctr
+end-declarations
+
+
+D::[12000,32000,25000,36000,25000,30000,18000]
+CS::[5000,5000,5000,5000,5000,5000,5000,5000,5000,5000,1600,1600,1600,1600,2400,2400,2400,2400,2400,2400,2400,2400,1200,1200,1200]
+cap::[1750,1750,1750,1750,1750,1750,1750,1750,1750,1750,1500,1500,1500,1500,2000,2000,2000,2000,2000,2000,2000,2000,3500,3500,3500]
+M::[750,750,750,750,750,750,750,750,750,750,1000,1000,1000,1000,1200,1200,1200,1200,1200,1200,1200,1200,1800,1800,1800]
+CF::[2250,2250,2250,2250,2250,2250,2250,2250,2250,2250,1800,1800,1800,1800,3750,3750,3750,3750,3750,3750,3750,3750,4800,4800,4800]
+CH::[27,27,27,27,27,27,27,27,27,27,22,22,22,22,18,18,18,18,18,18,18,18,38,38,38]
+! A::[10,4,8,3]
+T::[6,3,3,2,4,4,2]
+
+
+!constraints are:
+
+
+! (1)
+forall(i in Ie)
+  sum(j in Je)(M(j)*X(i,j) + Y(i,j)) >= D(i)
+
+
+
+! (3)
+forall(i in Ie, j in Je)
+  X(i,j)*M(j) + Y(i,j) <= cap(j)
+
+! (4)
+forall(i in Ie)
+sum(j in Je)cap(j)*X(i,j) >= (1.2)*D(i)
+
+! (5)
+forall(i in Iee, j in Je)
+X(i-1,j) + X(i,j) <= 1 + Z(i,j)
+
+! (6)
+forall(i in Iee, j in Je)
+X(i-1,j)+ X(i,j) >= 2*Z(i,j)
+
+! (7)
+forall(i in Ie, j in Je)
+Z(i,j) is_binary
+
+! (8)
+forall(i in Ie, j in Je)
+X(i,j) is_binary
+
+forall(i in Ie, j in Je)
+Y(i,j) >= 0
+
+obj:= sum(i in Ie,j in Je)((CS(j) +CF(j)*T(i))*X(i,j) + Y(i,j)*CH(j)*T(i)/10 - CS(j)*Z(i,j))
+minimize(obj)
+
+
+writeln("Begin running model")
+forall( i in Ie, j in Je)
+	writeln("X(",i,",",j,")=",getsol(X(i,j)))
+writeln(getsol(obj))
+writeln("End running model")
+
+end-model
+
